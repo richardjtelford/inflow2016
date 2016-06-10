@@ -1,0 +1,53 @@
+---
+title: "INFLOW diatoms"
+author: "Richard J. Telford"
+date: "June 10, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Setup
+```{r}
+library(ggplot2)
+library(mapdata)
+library(rioja)
+source("R/load.data.R")
+```
+
+## Map of sites
+
+```{r}
+baltic <- map_data("worldHires", xlim = c(0, 40), ylim =  c(50, 75))
+
+ggplot(env, aes(x = East, y = North, colour = S.MEAN )) + 
+  geom_point() +
+  geom_map(data = baltic, map = baltic, aes(map_id = region), fill = "grey60", inherit.aes = FALSE) +
+  coord_map()+
+  labs(colour = "Salinity")
+```
+
+## Salinity distribution
+```{r}
+ggplot(env, aes(x = S.MEAN)) + 
+  geom_histogram(binwidth = 4)
+```
+
+## Fossil vs modern abundance
+```{r}
+modfos <- Merge(spp, fos, split = TRUE)
+modfosMax <- lapply(modfos, function(x) sapply(x, max, na.rm = TRUE))
+modfosMax <- as.data.frame(modfosMax)
+modfosMax$n2 <- Hill.N2(modfos$spp)
+modfosMax$n2[is.infinite(modfosMax$n2)] <- 0
+modfosMax$label <- ifelse(modfosMax$fos > 0.2, rownames(modfosMax), "")
+
+ggplot(modfosMax, aes(x = spp, y = fos, colour = n2 >= 5, label = label)) + 
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, linetype = 2, colour = "grey60") +
+  geom_text(hjust = "inward", show.legend = FALSE) +
+  labs(x = "Maximum abundance in calibration set", y = "Maximum abundance in fossil data", colour = "Hill's n2 >= 5")
+```
+
