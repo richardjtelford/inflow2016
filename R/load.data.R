@@ -18,10 +18,13 @@ minE <- substr(env$East, 4, nchar(env$East))
 env$East <- degE + as.numeric(minE)/60
 
 names(env) <- make.names(names(env))
+env <- env[order(env$slide.no.), ]# sort by slide number
 
 #spp
-spp <- read_excel("data/surficial data.xlsx", sheet = 1)
+spp <- as.data.frame(read_excel("data/surficial samples data.xlsx", sheet = 1))
 head(spp)
+spp[, -1] <- spp[, -1][, order(spp[2, -1])] #reorder by slide number
+
 cn <- spp[-(1:2), 1]#get new colnames
 spp[, 1] <- NULL 
 
@@ -48,7 +51,7 @@ meta_spp$count <-rowSums(spp)
 spp <- spp / rowSums(spp)
 
 #fos
-fos <- read_excel("data/GC 303600.xls", sheet = 1)
+fos <- as.data.frame(read_excel("data/GC 303600.xls", sheet = 1))
 fos <- fos[!is.na(fos[, 1]),]
 head(fos)
 cn <- fos[-(1:2), 1]
@@ -78,5 +81,4 @@ cbind(env$"slide.no", as.numeric(rownames(spp)), env$"slide.no" == as.numeric(ro
 #check species names match
 setdiff(names(fos), names(spp))#taxa in fossil only
 setdiff(names(spp), names(fos))#taxa in modern only
-
 
