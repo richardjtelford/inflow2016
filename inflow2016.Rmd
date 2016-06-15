@@ -6,20 +6,22 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
 ```
 
 ## Setup
-```{r}
-library(ggplot2)
-library(mapdata)
-library(rioja)
+```{r setupChunk}
+library("ggplot2")
+library("mapdata")
+library("rioja")
+library("tidyr")
+
 source("R/load.data.R")
 ```
 
 ## Map of sites
 
-```{r}
+```{r siteMap}
 baltic <- map_data("worldHires", xlim = c(0, 40), ylim =  c(50, 75))
 
 ggplot(env, aes(x = East, y = North, colour = S.MEAN )) + 
@@ -30,13 +32,13 @@ ggplot(env, aes(x = East, y = North, colour = S.MEAN )) +
 ```
 
 ## Salinity distribution
-```{r}
+```{r salHist}
 ggplot(env, aes(x = S.MEAN)) + 
   geom_histogram(binwidth = 4)
 ```
 
 ## Fossil vs modern abundance
-```{r}
+```{r fosVSmod}
 modfos <- Merge(spp, fos, split = TRUE)
 modfosMax <- lapply(modfos, function(x) sapply(x, max, na.rm = TRUE))
 modfosMax <- as.data.frame(modfosMax)
@@ -49,5 +51,52 @@ ggplot(modfosMax, aes(x = spp, y = fos, colour = n2 >= 5, label = label)) +
   geom_abline(intercept = 0, slope = 1, linetype = 2, colour = "grey60") +
   geom_text(hjust = "inward", show.legend = FALSE) +
   labs(x = "Maximum abundance in calibration set", y = "Maximum abundance in fossil data", colour = "Hill's n2 >= 5")
+```
+
+## Stratigraphy
+
+```{r strat, out.extra='angle = 90'}
+keep <- colSums(fos > 0.03) > 3 
+fos2 <- gather(cbind(top = meta_fos$top, fos[, keep] * 100), key = "species", value = "percent", -top)
+ggplot(fos2, aes(x = top, y = percent)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(breaks = c(0, 20, 40 , 60))+
+  labs(x = "Depth cm", y = "Relative abundance") +
+  facet_grid(species~., space = "free_y", scale = "free_y") +
+  theme(strip.text.y = element_text(angle = 0))
+```
+
+## Analogue Quality
+```{r analogueChunk}
+mod<-MAT(spp, env$S.MEAN)
+pred<-predict(mod,fos)
+calibDists <- paldist(spp)
+goodpoorbad<-quantile(calibDists, prob=c(0.05, 0.1))
+
+
+qualitybands <- data.frame(
+  xmin = rep(-Inf, 3),
+  xmax = rep(Inf, 3),
+  ymax = c(goodpoorbad, Inf),
+  ymin = c(-Inf, goodpoorbad),
+  fill = factor(c("Good", "Fair", "None"), levels = c("None", "Fair", "Good"))
+)
+
+fillscale <-  scale_fill_manual(values = c("salmon", "lightyellow", "skyblue"), name = "Analogue Quality")
+
+g <- ggplot(data.frame(x = as.vector(calibDists)), aes(x = x)) +
+  geom_histogram() +
+  geom_rug(data = data.frame(x = pred$dist.n[, 1])) +
+  geom_rect(aes(ymin = xmin, ymax = xmax, xmin = ymin, xmax = ymax, fill = fill), qualitybands, alpha = .4, inherit.aes = FALSE) +
+  labs(x = " Taxonomic distance", y = "Count" ) + fillscale
+print(g)
+
+ 
+g <- ggplot(data.frame(depth = meta_fos$top, analogue = pred$dist.n[, 1])) +
+  geom_point(aes(x = depth, y = analogue)) +
+  labs(x = "Depth cm", y = "Squared chord distance to nearest analogue") +
+  geom_rect(aes(xmin = xmin, xmax = xmax, ymin = ymin, ymax = ymax, fill = fill), qualitybands, alpha = .5) +
+  fillscale
+print(g)
 ```
 
