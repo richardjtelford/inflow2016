@@ -54,7 +54,7 @@ spp <- spp / rowSums(spp)
 fos <- as.data.frame(read_excel("data/GC 303600.xls", sheet = 1))
 fos <- fos[!is.na(fos[, 1]),]
 head(fos)
-cn <- fos[-(1:2), 1]
+cn <- fos[-(1), 1]
 fos <- fos[, -1]
 
 #get meta info
@@ -63,7 +63,7 @@ meta_fos <- data.frame(
   base = as.numeric(unlist(fos[1, ])),
   interval = unlist(fos[2, ])
 )
-fos <- fos[-(1:2), ]#delete meta info
+fos <- fos[-(1), ]#delete meta info
 
 
 #transpose
