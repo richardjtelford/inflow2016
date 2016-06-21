@@ -100,3 +100,36 @@ g <- ggplot(data.frame(depth = meta_fos$top, analogue = pred$dist.n[, 1])) +
 print(g)
 ```
 
+baltic <- map_data("worldHires", xlim = c(0, 40), ylim =  c(50, 75))
+
+ggplot(env, aes(x = East, y = North, colour = S.MEAN, size  = spp$`Actinocyclus octonarius` )) + 
+  geom_point() +
+  geom_map(data = baltic, map = baltic, aes(map_id = region), fill = "grey60", inherit.aes = FALSE) +
+  coord_map()+
+  labs(colour = "Salinity")
+  
+```{r}
+ggplot(data.frame(depth = meta_fos$top,  n2 = Hill.N2(fos, margin = 1)), aes(depth, n2)) + geom_point()
+```
+
+```{r, fig.height = 12, fig.width = 12}
+abunFos <- names(fos)[colSums(fos > 0) > 3]
+
+spp2 <- cbind(env[, c("North", "East", "S.MEAN")], spp[, colSums(spp > 0) >= 10 | names(spp) %in% abunFos])
+spp2 <- gather(spp2, key = "species", value = "value", -North, -East, -S.MEAN)
+spp2$abunFos <- spp2$species %in% abunFos
+
+ggplot(spp2, aes(x = S.MEAN, y = value, colour = abunFos)) + geom_point() + facet_wrap(~species)
+
+
+
+balticLOW <- map_data("world", xlim = c(0, 40), ylim =  c(50, 75))
+
+ggplot(spp2[spp2$value > 0, ], aes(x = East, y = North, colour = abunFos, size  = value * 100)) + 
+  geom_point() +
+  geom_map(data = balticLOW, map = balticLOW, aes(map_id = region), fill = "grey60", inherit.aes = FALSE) +
+  coord_map() +
+  labs(colour = "Abundant in fossil", size = "Percent") + 
+  facet_wrap(~species, ncol = 10) + 
+  scale_size_area()
+```
